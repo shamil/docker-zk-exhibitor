@@ -1,45 +1,61 @@
-FROM debian:7.8
-MAINTAINER Mike Babineau michael.babineau@gmail.com
+FROM java:alpine
+MAINTAINER Alex Simenduev <shamil.si@gmail.com>
+
+# Args for built time overrides
+ARG EXHIBITOR_VERSION="1.5.6"
+ARG MVN_VERSION="3.3.9"
+ARG ZK_VERSION="3.4.8"
 
 ENV \
-    ZK_RELEASE="http://www.apache.org/dist/zookeeper/zookeeper-3.4.6/zookeeper-3.4.6.tar.gz" \
-    EXHIBITOR_POM="https://raw.githubusercontent.com/Netflix/exhibitor/d911a16d704bbe790d84bbacc655ef050c1f5806/exhibitor-standalone/src/main/resources/buildscripts/standalone/maven/pom.xml" \
-    # Append "+" to ensure the package doesn't get purged
-    BUILD_DEPS="curl maven openjdk-7-jdk+" \
-    DEBIAN_FRONTEND="noninteractive"
+    BUILD_DEPS="go git" \
+    EXHIBITOR_POM="https://raw.githubusercontent.com/Netflix/exhibitor/v$EXHIBITOR_VERSION/exhibitor-standalone/src/main/resources/buildscripts/standalone/maven/pom.xml" \
+    MVN_RELEASE="http://www.apache.org/dist/maven/maven-3/$MVN_VERSION/binaries/apache-maven-$MVN_VERSION-bin.tar.gz" \
+    ZK_RELEASE="http://www.apache.org/dist/zookeeper/zookeeper-$ZK_VERSION/zookeeper-$ZK_VERSION.tar.gz"
 
 # Use one step so we can remove intermediate dependencies and minimize size
 RUN \
-    # Install dependencies
-    apt-get update \
-    && apt-get install -y --allow-unauthenticated --no-install-recommends $BUILD_DEPS \
+    # Install required packages
+    apk add --no-cache bash fuse $BUILD_DEPS \
 
     # Default DNS cache TTL is -1. DNS records, like, change, man.
-    && grep '^networkaddress.cache.ttl=' /etc/java-7-openjdk/security/java.security || echo 'networkaddress.cache.ttl=60' >> /etc/java-7-openjdk/security/java.security \
+    && sed -i 's/^#*\(networkaddress.cache.ttl\).*/\1=60/' /usr/lib/jvm/default-jvm/jre/lib/security/java.security \
+
+    # Alpine doesn't have /opt dir
+    && mkdir -p /opt \
+
+    # Install maven
+    && wget -O /tmp/apache-maven.tgz $MVN_RELEASE \
+    && tar -xvzf /tmp/apache-maven.tgz -C /opt/ \
+    && ln -s /opt/apache-maven-* /opt/apache-maven \
+    && rm /tmp/apache-maven.tgz \
 
     # Install ZK
-    && curl -Lo /tmp/zookeeper.tgz $ZK_RELEASE \
-    && mkdir -p /opt/zookeeper/transactions /opt/zookeeper/snapshots \
-    && tar -xzf /tmp/zookeeper.tgz -C /opt/zookeeper --strip=1 \
+    && wget -O /tmp/zookeeper.tgz $ZK_RELEASE \
+    && tar -xvzf /tmp/zookeeper.tgz -C /opt/ \
+    && ln -s /opt/zookeeper-* /opt/zookeeper \
     && rm /tmp/zookeeper.tgz \
 
     # Install Exhibitor
     && mkdir -p /opt/exhibitor \
-    && curl -Lo /opt/exhibitor/pom.xml $EXHIBITOR_POM \
-    && mvn -f /opt/exhibitor/pom.xml package \
+    && wget -O /opt/exhibitor/pom.xml $EXHIBITOR_POM \
+    && /opt/apache-maven/bin/mvn -f /opt/exhibitor/pom.xml package \
     && ln -s /opt/exhibitor/target/exhibitor*jar /opt/exhibitor/exhibitor.jar \
 
-    # Remove build-time dependencies
-    && apt-get purge -y --auto-remove $BUILD_DEPS \
-    && rm -rf /var/lib/apt/lists/*
+    # Install gcsfuse
+    && GOPATH=/tmp/go GO15VENDOREXPERIMENT=1 go get -u github.com/googlecloudplatform/gcsfuse \
+    && mv /tmp/go/bin/gcsfuse /usr/local/bin/ \
+    && rm -Rf /tmp/go \
 
-# Add the wrapper script to setup configs and exec exhibitor
-ADD include/wrapper.sh /opt/exhibitor/wrapper.sh
+    # Remove build-time dependencies
+    && apk del --no-cache $BUILD_DEPS \
+    && rm -Rf /opt/apache-maven* ~/.m2
 
 # Add the optional web.xml for authentication
 ADD include/web.xml /opt/exhibitor/web.xml
 
-USER root
+# Add the wrapper script to setup configs and exec exhibitor
+ADD include/wrapper.sh /opt/exhibitor/wrapper.sh
+
 WORKDIR /opt/exhibitor
 EXPOSE 2181 2888 3888 8181
 
