@@ -55,6 +55,8 @@ else
     echo "backup-extra=directory\=/opt/zookeeper/local_configs" >> /opt/exhibitor/defaults.conf
     BACKUP_CONFIG="--configtype file --fsconfigdir /opt/zookeeper/local_configs --filesystembackup true"
 
+    mkdir -p /opt/zookeeper/local_configs
+
     [[ -n ${GS_BUCKET} ]] && {
         [[ -n ${GS_PREFIX} ]] && GS_PREFIX="--only-dir ${GS_PREFIX}"
         [[ -e /opt/exhibitor/key-file.json ]] && GS_KEY_FILE="--key-file /opt/exhibitor/key-file.json"
@@ -67,8 +69,6 @@ else
         ${GS_BUCKET} /opt/zookeeper/local_configs \
         || exit 1
     }
-
-    mkdir -p /opt/zookeeper/local_configs
 fi
 
 [[ -n ${ZK_PASSWORD} ]] && {
