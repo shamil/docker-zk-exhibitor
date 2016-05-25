@@ -52,7 +52,7 @@ if [[ -n ${S3_BUCKET} ]]; then
     echo "backup-extra=throttle\=&bucket-name\=${S3_BUCKET}&key-prefix\=${S3_PREFIX}&max-retries\=4&retry-sleep-ms\=30000" >> /opt/exhibitor/defaults.conf
     BACKUP_CONFIG="--configtype s3 --s3config ${S3_BUCKET}:${S3_PREFIX} ${S3_SECURITY} --s3region ${AWS_REGION} --s3backup true"
 else
-    mkdir -p /opt/zookeeper/local_configs
+    echo "backup-extra=directory\=/opt/zookeeper/local_configs" >> /opt/exhibitor/defaults.conf
     BACKUP_CONFIG="--configtype file --fsconfigdir /opt/zookeeper/local_configs --filesystembackup true"
 
     [[ -n ${GS_BUCKET} ]] && {
@@ -67,6 +67,8 @@ else
         ${GS_BUCKET} /opt/zookeeper/local_configs \
         || exit 1
     }
+
+    mkdir -p /opt/zookeeper/local_configs
 fi
 
 [[ -n ${ZK_PASSWORD} ]] && {

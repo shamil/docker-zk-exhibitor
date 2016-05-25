@@ -23,17 +23,17 @@ RUN \
     # Alpine doesn't have /opt dir
     && mkdir -p /opt \
 
-    # Install maven
-    && wget -O /tmp/apache-maven.tgz $MVN_RELEASE \
-    && tar -xvzf /tmp/apache-maven.tgz -C /opt/ \
-    && ln -s /opt/apache-maven-* /opt/apache-maven \
-    && rm /tmp/apache-maven.tgz \
-
     # Install ZK
     && wget -O /tmp/zookeeper.tgz $ZK_RELEASE \
     && tar -xvzf /tmp/zookeeper.tgz -C /opt/ \
     && ln -s /opt/zookeeper-* /opt/zookeeper \
     && rm /tmp/zookeeper.tgz \
+
+    # Install maven
+    && wget -O /tmp/apache-maven.tgz $MVN_RELEASE \
+    && tar -xvzf /tmp/apache-maven.tgz -C /opt/ \
+    && ln -s /opt/apache-maven-* /opt/apache-maven \
+    && rm /tmp/apache-maven.tgz \
 
     # Install Exhibitor
     && mkdir -p /opt/exhibitor \
