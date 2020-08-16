@@ -1,6 +1,8 @@
-Runs an [Exhibitor](https://github.com/Netflix/exhibitor)-managed [ZooKeeper](http://zookeeper.apache.org/) instance using S3 or GCS for backups and automatic node discovery.
+## Not mainteined use [bringg/docker-zk-exhibitor](https://github.com/bringg/docker-zk-exhibitor) instead
 
-# Not mainteined use [bringg/docker-zk-exhibitor](https://github.com/bringg/docker-zk-exhibitor) instead
+***
+
+Runs an [Exhibitor](https://github.com/Netflix/exhibitor)-managed [ZooKeeper](http://zookeeper.apache.org/) instance using S3 or GCS for backups and automatic node discovery.
 
 Available on the Docker Index as [simenduev/zookeeper-exhibitor](https://index.docker.io/u/simenduev/zookeeper-exhibitor/):
 
